@@ -70,7 +70,78 @@ $ git pull
 &nbsp;
 
 
+import time
+import numpy as np
+from sentence_transformers import SentenceTransformer
+from laser_encoders import LaserEncoder
 
+# Test sentences in different languages
+SENTENCES = [
+    "This is a sentence.",           # English
+    "Ceci est une phrase.",          # French
+    "Dies ist ein Satz.",            # German
+    "Esta es una oración.",          # Spanish
+    "这是一个句子。"                   # Chinese
+]
+
+# List of transformer models to test
+TRANSFORMER_MODELS = {
+    "MiniLM": "paraphrase-multilingual-MiniLM-L12-v2",
+    "LaBSE": "sentence-transformers/LaBSE",
+    "BGE-M3": "BAAI/bge-m3"
+}
+
+def benchmark_transformer(name, model_name):
+    print(f"\n--- {name} ---")
+    model = SentenceTransformer(model_name)
+    start = time.time()
+    embeddings = model.encode(SENTENCES, convert_to_numpy=True)
+    end = time.time()
+    norm = np.linalg.norm(embeddings[0])
+    return {
+        "name": name,
+        "dimensions": embeddings.shape[1],
+        "time": round(end - start, 4),
+        "norm": round(norm, 4),
+        "langs": "100+",
+        "type": "transformer"
+    }
+
+def benchmark_laser2():
+    print(f"\n--- LASER2 ---")
+    encoder = LaserEncoder()
+    start = time.time()
+    embeddings = encoder.encode_sentences(SENTENCES, lang='eng')
+    end = time.time()
+    norm = np.linalg.norm(embeddings[0])
+    return {
+        "name": "LASER2",
+        "dimensions": embeddings.shape[1],
+        "time": round(end - start, 4),
+        "norm": round(norm, 4),
+        "langs": "200+",
+        "type": "laser2"
+    }
+
+def main():
+    results = []
+
+    # Benchmark transformer models
+    for name, model_name in TRANSFORMER_MODELS.items():
+        result = benchmark_transformer(name, model_name)
+        results.append(result)
+
+    # Benchmark LASER2
+    results.append(benchmark_laser2())
+
+    # Print summary
+    print("\n--- Summary ---")
+    print(f"{'Model':<12} {'Dims':<6} {'Time(s)':<8} {'Norm':<8} {'Langs':<8} {'Type'}")
+    for r in results:
+        print(f"{r['name']:<12} {r['dimensions']:<6} {r['time']:<8} {r['norm']:<8} {r['langs']:<8} {r['type']}")
+
+if __name__ == "__main__":
+    main()
 
 
 
